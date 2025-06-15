@@ -160,7 +160,7 @@ const Index = () => {
               <GraduationCap className="w-8 h-8 text-purple-600" />
             </div>
             <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent mb-2 leading-tight">
-              AI Era Development
+              Development Tracker
             </h1>
             <div className="text-lg font-semibold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent mb-2">
               Learning Syllabus
