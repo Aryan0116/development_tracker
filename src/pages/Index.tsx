@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { PhaseCard } from '../components/PhaseCard';
 import { ProgressOverview } from '../components/ProgressOverview';
@@ -43,11 +42,37 @@ const Index = () => {
   }, [completedSubtopics]);
 
   const toggleModule = (moduleId: string) => {
-    setCompletedModules(prev => 
-      prev.includes(moduleId) 
-        ? prev.filter(id => id !== moduleId)
-        : [...prev, moduleId]
-    );
+    const topic = phases
+      .flatMap(phase => phase.modules)
+      .flatMap(module => module.topics)
+      .find(topic => topic.id === moduleId);
+
+    if (!topic || !topic.subtopics) {
+      // No subtopics, just toggle the module
+      setCompletedModules(prev => 
+        prev.includes(moduleId) 
+          ? prev.filter(id => id !== moduleId)
+          : [...prev, moduleId]
+      );
+      return;
+    }
+
+    const isCurrentlyCompleted = completedModules.includes(moduleId);
+    
+    if (isCurrentlyCompleted) {
+      // Remove the module and all its subtopics
+      setCompletedModules(prev => prev.filter(id => id !== moduleId));
+      setCompletedSubtopics(prev => 
+        prev.filter(subtopicId => !topic.subtopics!.some(subtopic => 
+          subtopicId === `${moduleId}-${subtopic}`
+        ))
+      );
+    } else {
+      // Add the module and all its subtopics
+      setCompletedModules(prev => [...prev, moduleId]);
+      const allSubtopicIds = topic.subtopics.map(subtopic => `${moduleId}-${subtopic}`);
+      setCompletedSubtopics(prev => [...prev, ...allSubtopicIds]);
+    }
   };
 
   const toggleProject = (projectId: string) => {
@@ -59,11 +84,66 @@ const Index = () => {
   };
 
   const toggleSubtopic = (subtopicId: string) => {
-    setCompletedSubtopics(prev => 
-      prev.includes(subtopicId) 
+    console.log('toggleSubtopic called with:', subtopicId);
+    
+    // Find the topic that contains this subtopic
+    const topic = phases
+      .flatMap(phase => phase.modules)
+      .flatMap(module => module.topics)
+      .find(topic => {
+        if (!topic.subtopics) return false;
+        return topic.subtopics.some(subtopic => 
+          `${topic.id}-${subtopic}` === subtopicId
+        );
+      });
+
+    console.log('topic found:', topic);
+
+    if (!topic || !topic.subtopics) {
+      console.log('No topic or subtopics found, returning early');
+      return;
+    }
+
+    const topicId = topic.id;
+    console.log('topicId found:', topicId);
+
+    const isCurrentlyCompleted = completedSubtopics.includes(subtopicId);
+    console.log('isCurrentlyCompleted:', isCurrentlyCompleted);
+    console.log('current completedSubtopics:', completedSubtopics);
+    
+    // Toggle the subtopic
+    setCompletedSubtopics(prev => {
+      const newState = isCurrentlyCompleted
         ? prev.filter(id => id !== subtopicId)
-        : [...prev, subtopicId]
+        : [...prev, subtopicId];
+      console.log('new completedSubtopics state:', newState);
+      return newState;
+    });
+
+    // Check if all subtopics will be completed after this toggle
+    const allSubtopicIds = topic.subtopics.map(subtopic => `${topicId}-${subtopic}`);
+    console.log('allSubtopicIds for topic:', allSubtopicIds);
+    
+    const currentCompletedSubtopics = completedSubtopics.filter(id => 
+      allSubtopicIds.includes(id) && id !== subtopicId
     );
+    console.log('currentCompletedSubtopics (excluding toggled):', currentCompletedSubtopics);
+    
+    if (!isCurrentlyCompleted) {
+      // We're adding a subtopic
+      const willAllBeCompleted = currentCompletedSubtopics.length + 1 === allSubtopicIds.length;
+      console.log('willAllBeCompleted:', willAllBeCompleted);
+      if (willAllBeCompleted && !completedModules.includes(topicId)) {
+        console.log('Marking topic as completed:', topicId);
+        setCompletedModules(prev => [...prev, topicId]);
+      }
+    } else {
+      // We're removing a subtopic
+      if (completedModules.includes(topicId)) {
+        console.log('Unmarking topic as completed:', topicId);
+        setCompletedModules(prev => prev.filter(id => id !== topicId));
+      }
+    }
   };
 
   return (
